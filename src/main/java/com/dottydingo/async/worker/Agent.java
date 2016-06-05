@@ -17,6 +17,7 @@ public class Agent<T>
     private int maximumWorkers = 10;
     private int currentWorkers;
     private String name;
+    private boolean forcePollOnWorkerComplete = true;
 
     private final AtomicBoolean polling = new AtomicBoolean(false);
     private final AtomicReference<AgentStatus> status = new AtomicReference<>(AgentStatus.STOPPED);
@@ -66,6 +67,16 @@ public class Agent<T>
     public void setWorker(Worker<T> worker)
     {
         this.worker = worker;
+    }
+
+    public void setMetricReporter(MetricReporter metricReporter)
+    {
+        this.metricReporter = metricReporter;
+    }
+
+    public void setForcePollOnWorkerComplete(boolean forcePollOnWorkerComplete)
+    {
+        this.forcePollOnWorkerComplete = forcePollOnWorkerComplete;
     }
 
     public AgentStatus getStatus()
@@ -159,7 +170,7 @@ public class Agent<T>
     {
         public PollerThread()
         {
-            super(String.format("Agent %s poller.",name));
+            super(String.format("agent-%s-poller",name));
         }
 
         @Override
@@ -226,8 +237,11 @@ public class Agent<T>
                 metricReporter.workProcessed(System.currentTimeMillis() - start);
                 workerSemaphore.release();
                 metricReporter.activeWorkers(getActiveWorkers());
-                logger.debug("Forcing poll");
-                poll();
+                if(forcePollOnWorkerComplete)
+                {
+                    logger.debug("Forcing poll");
+                    poll();
+                }
             }
         }
     }
